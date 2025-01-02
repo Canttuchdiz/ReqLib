@@ -21,27 +21,34 @@ namespace Sockets
 		// Methods
 	public:
 		SOCKET poolSocket();
+		// Return CS means return connected sockets
+		void returnCS();
 		// opsoc is like open socket
 		void returnSocket(SOCKET soc);
 		void clean();
 		// Instance variables
 	private:
 		// Max sockets in pool; use getters and setters later? prolly unnecessary bc this isnt userfacing
-		int maxsoc;
+		const int maxsoc;
 		// opsoc stands for open sockets (available sockets)
 		std::queue<SOCKET> opsoc;
-		// ocsoc stands for occupied sockets
+		// opcon stands for open connection
 		std::vector<SOCKET> ocsoc;
+	// Methods
+	private:
+		void endConnection(SOCKET soc);
 	};
 
 	std::unique_ptr<ConnectionPool> initialize(int socNum);
 
-	typedef struct {
-		SOCKET clsoc;
-		struct sockaddr *srvsoc;
+	typedef struct ConSoc{
+		const SOCKET clsoc;
+		const struct sockaddr *srvsoc;
+
+		ConSoc(SOCKET client, struct sockaddr* server) : clsoc(client), srvsoc(server) {}
 
 		std::string getIP() const;
-	} ConSoc; // Connected sockets
+	}; // Connected sockets
 }
 
 #endif

@@ -13,15 +13,14 @@
 namespace Sockets
 {
 	// Use smart pointers
-	ConnectionPool::ConnectionPool(int socnum)
+	ConnectionPool::ConnectionPool(int socnum) : maxsoc(socnum)
 	{
-		maxsoc = socnum;
 		for (int i = 0; i < socnum; i++)
 		{
 			// sochdl stands for socket handle
 			SOCKET sochdl = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 			if (sochdl == INVALID_SOCKET) {
-				ConnectionPool::clean();
+				clean();
 				throw std::runtime_error("Socket creation error: " + WSAGetLastError());
 			}
 			opsoc.push(sochdl);
@@ -30,14 +29,13 @@ namespace Sockets
 
 	ConnectionPool::~ConnectionPool()
 	{
-		// Check to see if already closed?
-		ConnectionPool::clean();
+		clean();
 	}
 
 	SOCKET ConnectionPool::poolSocket()
 	{
 		if (opsoc.empty()) {
-			ConnectionPool::clean; // put close sockets here maybe?
+			clean(); // put close sockets here maybe?
 			throw std::runtime_error("Socket pool is empty");
 		}
 		SOCKET sochdl = opsoc.front();
@@ -46,28 +44,45 @@ namespace Sockets
 		return sochdl;
 	}
 
-	//Shutdown must occur by the client? function itself is redundant
-	// Must be a valid socket...
-	void ConnectionPool::returnSocket(SOCKET soc) {
+	void ConnectionPool::endConnection(SOCKET soc) {
 		int iResult = shutdown(soc, SD_BOTH);
 		if (iResult == SOCKET_ERROR) {
 			// Likely invalid socket; socerr stands for socket error
-			ConnectionPool::clean(); // do i put this here or not
+			clean(); // do i put this here or not
 			throw std::runtime_error("Invalid socket a/o socerr: " + WSAGetLastError());
 		}
-		// Removes socket
+	}
+
+	// Maybe move to util file or smth idk
+	void printVectorElements(std::vector<SOCKET> *socketVec) {
+		int i = 0;
+		for (SOCKET soc : *socketVec) {
+			++i;
+			std::cout << "Socket " << i << ": " << soc << std::endl;
+		}
+	}
+
+	//Shutdown must occur by the client? function itself is redundant
+	// Must be a valid socket...
+	void ConnectionPool::returnSocket(SOCKET soc) {
+		endConnection(soc);
 		ocsoc.erase(std::remove(ocsoc.begin(), ocsoc.end(), soc), ocsoc.end());
 		opsoc.push(soc);
-		std::cout << "issue" << std::endl;
+	}
+
+	void ConnectionPool::returnCS() { // Iterating issues while removing... run tests; check what iterator points to, print vector, etc
+		for (auto it = ocsoc.begin(); it != ocsoc.end();) {
+			SOCKET soc = *it;
+			it = ocsoc.erase(it);
+			endConnection(soc);
+		}
 	}
 
 	// In http object, have a close function which deletes the object which will inherently call this. only call it directly on errors; must be called
 	void ConnectionPool::clean() {
 		int opsocLen = opsoc.size();
 		if (opsocLen < maxsoc) {
-			// Find a way to keep track of active sockets, pull them back, and then deactivate them; use ocsoc
-			// Make cerr later?
-			std::cout << "Sockets still in-use" << std::endl;
+			returnCS();
 		}
 		while (!opsoc.empty()) {
 			SOCKET sochdl = opsoc.front();
