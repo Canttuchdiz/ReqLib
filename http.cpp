@@ -9,6 +9,7 @@
 #pragma comment (lib, "Mswsock.lib")
 #pragma comment (lib, "AdvApi32.lib")
 
+#include <sstream>
 #include <string>
 #include <map>
 
@@ -27,7 +28,7 @@ namespace HTTP
 		{"Connection", "close"}
 	};
 
-	void recvHandler(SOCKET clsoc) {
+	std::string recvHandler(SOCKET clsoc) {
 		std::string data = "";
 		char recvBuff[RECV_BUFF] = "";
 		int recvC = 0;
@@ -39,7 +40,6 @@ namespace HTTP
 				// Garbage info from setting char array last exists so need to pull all bytes allocated this time
 				data.append(recvBuff, iResult);
 				recvC++;
-				std::cout << "\r\nRecv Count " << recvC << "\r\nData Preview: \r\n" << recvBuff << std::endl;
 			}
 			else if (iResult == 0) {
 				std::cout << "All data received\r\n" << std::endl;
@@ -49,7 +49,22 @@ namespace HTTP
 			}
 		} while (iResult > 0);
 
-		std::cout << "Received Data:\n" << data << std::endl;
+		//std::cout << "Received Data:\n" << data << std::endl;
+		return data;
+	}
+
+	Data dataParser(std::string recvBuff) { // eventually return of type data; maybe dedicate an entire class to parsing; regex?
+		std::string delimiter = "\r\n\r\n";
+		size_t separator = recvBuff.find(delimiter);
+		std::string messageBody = recvBuff.substr(separator);
+		std::stringstream ss(recvBuff);
+		std::string word;
+		std::getline(ss, word, ' ');
+		std::getline(ss, word, ' ');
+		int status = std::stoi(word);
+		std::map<std::string, std::string> headers;
+		Data data(status, headers, messageBody);
+		return data;
 	}
 
 	// Make type Data later and make non blocking
@@ -70,8 +85,9 @@ namespace HTTP
 			throw std::runtime_error("Sending failed: " + WSAGetLastError());
 		}
 		std::cout << "Request successfully sent to " << consoc.getIP() << std::endl;
-		recvHandler(consoc.clsoc);
-
+		std::string response = recvHandler(consoc.clsoc);
+		Data data = dataParser(response);
+		std::cout << data.status << std::endl;
 	}
 
 	Client::Client(int socnum) {
@@ -105,7 +121,6 @@ namespace HTTP
 				requestHeaders += constructHeaders(headers);
 		}
 		request = requestHeaders + requestBody;
-		std::cout << "Request preview:\n" << request << std::endl;
 		return request;
 	}
 

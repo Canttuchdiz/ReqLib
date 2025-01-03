@@ -46,6 +46,9 @@ namespace HTTP
 		const int status;
 		const std::map<std::string, std::string> headers;
 		const std::string content;
+
+		Data(int statusCode, std::map<std::string, std::string> reqHead, std::string recvBuff)
+			: status(statusCode), headers(reqHead), content(recvBuff) {}
 	};	
 }
 
