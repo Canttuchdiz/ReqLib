@@ -140,11 +140,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="http.h" />
-    <ClInclude Include="sockets.h" />
+    <ClInclude Include="parser.h" />
+    <ClInclude Include="pool.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="http.cpp" />
-    <ClCompile Include="sockets.cpp" />
+    <ClCompile Include="parser.cpp" />
+    <ClCompile Include="pool.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

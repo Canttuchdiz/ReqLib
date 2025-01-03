@@ -8,21 +8,17 @@
 #include <string>
 #include <map>
 
-#include "sockets.h"
+#include "pool.h"
+#include "parser.h"
 
 namespace HTTP
 {
 
-	enum class ReqType { GET, POST };
-
 	class Client
 	{
 	// Instance variables
-	public:
-		// Are set to default headers; more headers can be added on when passing in information; maybe make private and have getters/setters?
-		static const std::map<std::string, std::string> defh;
-	// Instance variables
 	private:
+		static const std::map<std::string, std::string> defh;
 		std::unique_ptr<Sockets::ConnectionPool> pool;
 	// Constructor
 	public:
@@ -34,8 +30,6 @@ namespace HTTP
 		void get(std::string hostName, std::string path);
 	// Methods
 	private:
-		// Place output in this function that says connected to IP
-		Sockets::ConSoc findConnection(addrinfo* result);
 		Sockets::ConSoc resolveConnection(std::string hostName);
 
 		std::string requestConstructor(ReqType method, std::string hostName, std::string path);

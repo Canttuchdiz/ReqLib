@@ -1,5 +1,5 @@
 #include "http.h" // Look at what I can make not part of the class and merely util functions; file is getting pretty crowded
-
+// Organize such that namespace functions and stuff are at the bottom and namespace functions & objects are at the top
 #include <iostream>
 #include <string>
 #include <winsock2.h>
@@ -13,7 +13,7 @@
 #include <string>
 #include <map>
 
-#include "sockets.h"
+#include "pool.h"
 
 #define HTTP_PORT "80"
 #define HTTP_VERSION "HTTP/1.1"
@@ -56,6 +56,8 @@ namespace HTTP
 	Data dataParser(std::string recvBuff) { // eventually return of type data; maybe dedicate an entire class to parsing; regex?
 		std::string delimiter = "\r\n\r\n";
 		size_t separator = recvBuff.find(delimiter);
+		std::string testHeaders = recvBuff.substr(0, separator);
+		std::cout << testHeaders << std::endl;
 		std::string messageBody = recvBuff.substr(separator);
 		std::stringstream ss(recvBuff);
 		std::string word;
@@ -87,7 +89,7 @@ namespace HTTP
 		std::cout << "Request successfully sent to " << consoc.getIP() << std::endl;
 		std::string response = recvHandler(consoc.clsoc);
 		Data data = dataParser(response);
-		std::cout << data.status << std::endl;
+		std::cout << data.content << std::endl;
 	}
 
 	Client::Client(int socnum) {
@@ -96,7 +98,7 @@ namespace HTTP
 
 	}
 
-	// cshd stands for custom headers; feels like its so inefficient using so many maps; maybe make overloaded function?
+	// cshd stands for custom headers; feels like its so inefficient using so many maps; maybe make overloaded function?; move to parser?
 	std::string constructHeaders(std::map<std::string, std::string> headers) {
 		std::string requestHeader = "";
 		for (auto it = headers.begin(); it != headers.end(); ++it) {
@@ -108,7 +110,7 @@ namespace HTTP
 		return requestHeader;
 	}
 
-	// Make method like an enum or something with set choices; should it be in class or not idk
+	// Move to parser?
 	std::string Client::requestConstructor(ReqType method, std::string hostName, std::string path) {
 		std::string request = "";
 		std::string requestHeaders = "";
@@ -124,7 +126,7 @@ namespace HTTP
 		return request;
 	}
 
-	Sockets::ConSoc Client::findConnection(addrinfo *result) {
+	Sockets::ConSoc findConnection(addrinfo *result, std::unique_ptr<Sockets::ConnectionPool> &pool) {
 		// Initialize to non-garbage value
 		SOCKET clsoc = INVALID_SOCKET;
 		struct sockaddr* srvsoc = nullptr;
@@ -179,7 +181,7 @@ namespace HTTP
 			throw std::runtime_error("Address failed: " + WSAGetLastError());
 		}
 
-		Sockets::ConSoc consoc = Client::findConnection(result);
+		Sockets::ConSoc consoc = findConnection(result, pool);
 
 		std::cout << "Connected to " << consoc.getIP().c_str() << " at port " << HTTP_PORT << std::endl;
 		
