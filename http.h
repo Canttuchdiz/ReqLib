@@ -22,6 +22,8 @@ namespace HTTP
 		const std::map<std::string, std::string> headers;
 		const std::string content;
 
+		std::string getHeaders() const;
+
 		Data(const int statusCode, const std::map<std::string, std::string> &reqHead, const std::string &recvBuff)
 			: status(statusCode), headers(reqHead), content(recvBuff) {}
 	};
@@ -43,8 +45,6 @@ namespace HTTP
 	// Methods
 	private:
 		Sockets::ConSoc resolveConnection(const std::string &hostName);
-
-		std::string requestConstructor(const ReqType &method, const std::string &hostName, const std::string &path);
 	};
 }
 

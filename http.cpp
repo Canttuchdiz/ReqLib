@@ -52,17 +52,10 @@ namespace HTTP
 		return data;
 	}
 
-	// Make type Data later and make non blocking
 	Data Client::get(const std::string &hostName, const std::string &path) {
-		// Need to resolve hostname - this is its own function in namespace but not class
-		// Need to pool - call pooling
-		// Need to connect socket - make a function maybe or maybe not most likely yes
-		// Need to send request - need function to setup http format and that same function will send it
-		// Receive requests connection closed for now (no chunking yet)
-		// Return socket to pool (make sure addrinfo is freed)
 		Sockets::ConSoc consoc = Client::resolveConnection(hostName);
 		ReqType method = ReqType::GET;
-		std::string formattedReq = requestConstructor(method, hostName, path);
+		std::string formattedReq = requestConstructor(method, hostName, path, HTTP_VERSION, defh);
 		std::cout << "\nRequest:\n" << formattedReq << std::endl; // have file for outputting stuff... like debug file?
 		int iResult = send(consoc.clsoc, formattedReq.c_str(), formattedReq.length(), 0);
 		if (iResult == SOCKET_ERROR) {
@@ -81,36 +74,7 @@ namespace HTTP
 
 	}
 
-	// cshd stands for custom headers; feels like its so inefficient using so many maps; maybe make overloaded function?; move to parser?
-	std::string constructHeaders(const std::map<std::string, std::string> &headers) {
-		std::string requestHeader = "";
-		for (auto it = headers.begin(); it != headers.end(); ++it) {
-			std::string key = it->first;
-			std::string value = it->second;
-			requestHeader += key + ": " + value + "\r\n";
-		}
-		requestHeader += "\r\n";
-		return requestHeader;
-	}
-
-	// Move to parser?
-	std::string Client::requestConstructor(const ReqType &method, const std::string &hostName, const std::string &path) {
-		std::string request = "";
-		std::string requestHeaders = "";
-		std::string requestBody = "";
-		switch (method) {
-		case ReqType::GET:
-				requestHeaders += "GET " + path + " " + HTTP_VERSION + "\r\n";
-				std::map<std::string, std::string> headers = defh;
-				headers["Host"] = hostName;
-				requestHeaders += constructHeaders(headers);
-		}
-		request = requestHeaders + requestBody;
-		return request;
-	}
-
 	Sockets::ConSoc findConnection(addrinfo *result, std::unique_ptr<Sockets::ConnectionPool> &pool) {
-		// Initialize to non-garbage value
 		SOCKET clsoc = INVALID_SOCKET;
 		struct sockaddr* srvsoc = nullptr;
 		addrinfo *ptr = NULL;
@@ -169,5 +133,14 @@ namespace HTTP
 		std::cout << "Connected to " << consoc.getIP().c_str() << " at port " << HTTP_PORT << std::endl;
 		
 		return consoc;
+	}
+
+	std::string Data::getHeaders() const {
+		std::string delim = CRLF;
+		std::string headerBuff = "";
+		for (auto &header : headers) {
+			headerBuff += header.first + ": " + header.second + delim;
+		}
+		return headerBuff.substr(0, headerBuff.length() - delim.length());
 	}
 }
