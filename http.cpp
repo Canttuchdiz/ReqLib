@@ -14,10 +14,11 @@
 #include <map>
 
 #include "pool.h"
+#include "parser.h"
 
 #define HTTP_PORT "80"
 #define HTTP_VERSION "HTTP/1.1"
-#define RECV_BUFF 4096
+#define RECV_BUFF (4096)
 
 namespace HTTP
 {
@@ -28,14 +29,13 @@ namespace HTTP
 		{"Connection", "close"}
 	};
 
-	std::string recvHandler(SOCKET clsoc) {
+	std::string recvHandler(const SOCKET &clsoc) {
 		std::string data = "";
 		char recvBuff[RECV_BUFF] = "";
 		int recvC = 0;
 		int iResult = 0;
 		do {
 			iResult = recv(clsoc, recvBuff, sizeof(recvBuff), 0);
-			std::cout << "Data size: " << iResult << std::endl;
 			if (iResult > 0) {
 				// Garbage info from setting char array last exists so need to pull all bytes allocated this time
 				data.append(recvBuff, iResult);
@@ -49,28 +49,11 @@ namespace HTTP
 			}
 		} while (iResult > 0);
 
-		//std::cout << "Received Data:\n" << data << std::endl;
-		return data;
-	}
-
-	Data dataParser(std::string recvBuff) { // eventually return of type data; maybe dedicate an entire class to parsing; regex?
-		std::string delimiter = "\r\n\r\n";
-		size_t separator = recvBuff.find(delimiter);
-		std::string testHeaders = recvBuff.substr(0, separator);
-		std::cout << testHeaders << std::endl;
-		std::string messageBody = recvBuff.substr(separator);
-		std::stringstream ss(recvBuff);
-		std::string word;
-		std::getline(ss, word, ' ');
-		std::getline(ss, word, ' ');
-		int status = std::stoi(word);
-		std::map<std::string, std::string> headers;
-		Data data(status, headers, messageBody);
 		return data;
 	}
 
 	// Make type Data later and make non blocking
-	void Client::get(std::string hostName, std::string path) {
+	Data Client::get(const std::string &hostName, const std::string &path) {
 		// Need to resolve hostname - this is its own function in namespace but not class
 		// Need to pool - call pooling
 		// Need to connect socket - make a function maybe or maybe not most likely yes
@@ -80,26 +63,26 @@ namespace HTTP
 		Sockets::ConSoc consoc = Client::resolveConnection(hostName);
 		ReqType method = ReqType::GET;
 		std::string formattedReq = requestConstructor(method, hostName, path);
-		std::cout << "Request:\n" << formattedReq << std::endl;
+		std::cout << "\nRequest:\n" << formattedReq << std::endl; // have file for outputting stuff... like debug file?
 		int iResult = send(consoc.clsoc, formattedReq.c_str(), formattedReq.length(), 0);
 		if (iResult == SOCKET_ERROR) {
 			pool->clean();
 			throw std::runtime_error("Sending failed: " + WSAGetLastError());
 		}
 		std::cout << "Request successfully sent to " << consoc.getIP() << std::endl;
-		std::string response = recvHandler(consoc.clsoc);
-		Data data = dataParser(response);
-		std::cout << data.content << std::endl;
+		std::string resBuff = recvHandler(consoc.clsoc);
+
+		return Data(parseStatus(resBuff), parseHeaders(resBuff), parseBody(resBuff));
 	}
 
-	Client::Client(int socnum) {
+	Client::Client(const int socNum) {
 
-		pool = Sockets::initialize(socnum);
+		pool = Sockets::initialize(socNum);
 
 	}
 
 	// cshd stands for custom headers; feels like its so inefficient using so many maps; maybe make overloaded function?; move to parser?
-	std::string constructHeaders(std::map<std::string, std::string> headers) {
+	std::string constructHeaders(const std::map<std::string, std::string> &headers) {
 		std::string requestHeader = "";
 		for (auto it = headers.begin(); it != headers.end(); ++it) {
 			std::string key = it->first;
@@ -111,7 +94,7 @@ namespace HTTP
 	}
 
 	// Move to parser?
-	std::string Client::requestConstructor(ReqType method, std::string hostName, std::string path) {
+	std::string Client::requestConstructor(const ReqType &method, const std::string &hostName, const std::string &path) {
 		std::string request = "";
 		std::string requestHeaders = "";
 		std::string requestBody = "";
@@ -166,7 +149,7 @@ namespace HTTP
 	}
 
 	// Unnecessary to abstract resolving dns (maybe do later idk); js abstracting connection process
-	Sockets::ConSoc Client::resolveConnection(std::string hostName) {
+	Sockets::ConSoc Client::resolveConnection(const std::string &hostName) {
 		int iResult = 0;
 		struct addrinfo* result = NULL, * ptr = NULL, hints;
 		ZeroMemory(&hints, sizeof(hints));

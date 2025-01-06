@@ -6,6 +6,7 @@
 #include <iostream>
 #include <winsock2.h>
 #include <string>
+#include <vector>
 #include <map>
 
 namespace HTTP
@@ -13,11 +14,11 @@ namespace HTTP
 
 	enum class ReqType { GET, POST };
 
+	std::vector<std::string> tokenize(const std::string &str, const std::string &delim);
 	// Used in get function which will return Data
-	std::string parseStatus(std::string response);
-	std::string parseBody(std::string response);
-	std::map<std::string, std::string> parseHeaders(std::string response);
-	std::string requestConstructor(ReqType method, std::string hostName, std::string path, std::map<std::string, std::string> headers, std::string body);
+	int parseStatus(const std::string &response);
+	std::string parseBody(const std::string &response);
+	std::map<std::string, std::string> parseHeaders(const std::string &response);
 }
 
 #endif

@@ -13,9 +13,9 @@
 namespace Sockets
 {
 	// Use smart pointers
-	ConnectionPool::ConnectionPool(int socnum) : maxsoc(socnum)
+	ConnectionPool::ConnectionPool(const int socNum) : maxsoc(socNum) // confused abt ts where did maxsoc come from
 	{
-		for (int i = 0; i < socnum; i++)
+		for (int i = 0; i < socNum; i++)
 		{
 			// sochdl stands for socket handle
 			SOCKET sochdl = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -44,7 +44,7 @@ namespace Sockets
 		return sochdl;
 	}
 
-	void ConnectionPool::endConnection(SOCKET soc) {
+	void ConnectionPool::endConnection(const SOCKET &soc) {
 		int iResult = shutdown(soc, SD_BOTH);
 		if (iResult == SOCKET_ERROR) {
 			// Likely invalid socket; socerr stands for socket error
@@ -53,18 +53,9 @@ namespace Sockets
 		}
 	}
 
-	// Maybe move to util file or smth idk
-	void printVectorElements(std::vector<SOCKET> *socketVec) {
-		int i = 0;
-		for (SOCKET soc : *socketVec) {
-			++i;
-			std::cout << "Socket " << i << ": " << soc << std::endl;
-		}
-	}
-
 	//Shutdown must occur by the client? function itself is redundant
 	// Must be a valid socket...
-	void ConnectionPool::returnSocket(SOCKET soc) {
+	void ConnectionPool::returnSocket(const SOCKET &soc) {
 		endConnection(soc);
 		ocsoc.erase(std::remove(ocsoc.begin(), ocsoc.end(), soc), ocsoc.end());
 		opsoc.push(soc);
@@ -93,8 +84,8 @@ namespace Sockets
 		std::cout << "Pool successfully closed..." << std::endl;
 	}
 
-	// Idk if I need clean bc wsacleanup cld be unnecessary
-	std::unique_ptr<ConnectionPool> initialize(int socnum) {
+	// Idk if I need clean bc wsacleanup cld be unnecessary; is this a fine location for it?
+	std::unique_ptr<ConnectionPool> initialize(const int socnum) {
 		WSADATA wsaData;
 		int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
 		if (iResult != 0) {

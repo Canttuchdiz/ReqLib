@@ -16,7 +16,7 @@ namespace Sockets
 		// Constructor shenanigans
 	public:
 		// Open multiple sockets
-		ConnectionPool(int socNum);
+		ConnectionPool(const int socNum);
 		~ConnectionPool();
 		// Methods
 	public:
@@ -24,7 +24,7 @@ namespace Sockets
 		// Return CS means return connected sockets
 		void returnCS();
 		// opsoc is like open socket
-		void returnSocket(SOCKET soc);
+		void returnSocket(const SOCKET &soc);
 		void clean();
 		// Instance variables
 	private:
@@ -36,16 +36,16 @@ namespace Sockets
 		std::vector<SOCKET> ocsoc;
 	// Methods
 	private:
-		void endConnection(SOCKET soc);
+		void endConnection(const SOCKET &soc);
 	};
 
-	std::unique_ptr<ConnectionPool> initialize(int socNum);
+	std::unique_ptr<ConnectionPool> initialize(const int socNum);
 
 	typedef struct ConSoc{
 		const SOCKET clsoc;
 		const struct sockaddr *srvsoc;
 
-		ConSoc(SOCKET client, struct sockaddr* server) : clsoc(client), srvsoc(server) {}
+		ConSoc(const SOCKET &client, const struct sockaddr* server) : clsoc(client), srvsoc(server) {}
 
 		std::string getIP() const;
 	}; // Connected sockets

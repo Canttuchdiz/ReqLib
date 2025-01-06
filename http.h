@@ -11,8 +11,20 @@
 #include "pool.h"
 #include "parser.h"
 
+#define DEFSOC_LEN (15)
+
 namespace HTTP
 {
+
+	// Make readonly
+	typedef struct Data {
+		const int status;
+		const std::map<std::string, std::string> headers;
+		const std::string content;
+
+		Data(const int statusCode, const std::map<std::string, std::string> &reqHead, const std::string &recvBuff)
+			: status(statusCode), headers(reqHead), content(recvBuff) {}
+	};
 
 	class Client
 	{
@@ -23,27 +35,17 @@ namespace HTTP
 	// Constructor
 	public:
 		// Initializes everything and makes unique_ptr
-		Client(int socNum);
+		Client(const int socNum);
 	// Methods
 	public:
 		// maybe have overload with and without headers; for now add headers onto previous ones
-		void get(std::string hostName, std::string path);
+		Data get(const std::string &hostName, const std::string &path);
 	// Methods
 	private:
-		Sockets::ConSoc resolveConnection(std::string hostName);
+		Sockets::ConSoc resolveConnection(const std::string &hostName);
 
-		std::string requestConstructor(ReqType method, std::string hostName, std::string path);
+		std::string requestConstructor(const ReqType &method, const std::string &hostName, const std::string &path);
 	};
-
-	// Make readonly
-	typedef struct Data{
-		const int status;
-		const std::map<std::string, std::string> headers;
-		const std::string content;
-
-		Data(int statusCode, std::map<std::string, std::string> reqHead, std::string recvBuff)
-			: status(statusCode), headers(reqHead), content(recvBuff) {}
-	};	
 }
 
 #endif
