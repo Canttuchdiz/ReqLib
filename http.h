@@ -44,7 +44,7 @@ namespace HTTP
 		Data get(const std::string &hostName, const std::string &path);
 	// Methods
 	private:
-		Sockets::ConSoc resolveConnection(const std::string &hostName);
+		std::unique_ptr<Sockets::ConSoc> resolveConnection(const std::string& hostName);
 	};
 }
 

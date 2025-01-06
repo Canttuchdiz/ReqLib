@@ -53,17 +53,17 @@ namespace HTTP
 	}
 
 	Data Client::get(const std::string &hostName, const std::string &path) {
-		Sockets::ConSoc consoc = Client::resolveConnection(hostName);
+		std::unique_ptr<Sockets::ConSoc> consoc = resolveConnection(hostName);
 		ReqType method = ReqType::GET;
 		std::string formattedReq = requestConstructor(method, hostName, path, HTTP_VERSION, defh);
 		std::cout << "\nRequest:\n" << formattedReq << std::endl; // have file for outputting stuff... like debug file?
-		int iResult = send(consoc.clsoc, formattedReq.c_str(), formattedReq.length(), 0);
+		int iResult = send(consoc->clsoc, formattedReq.c_str(), formattedReq.length(), 0);
 		if (iResult == SOCKET_ERROR) {
 			pool->clean();
 			throw std::runtime_error("Sending failed: " + WSAGetLastError());
 		}
-		std::cout << "Request successfully sent to " << consoc.getIP() << std::endl;
-		std::string resBuff = recvHandler(consoc.clsoc);
+		std::cout << "Request successfully sent to " << consoc->getIP() << std::endl;
+		std::string resBuff = recvHandler(consoc->clsoc);
 
 		return Data(parseStatus(resBuff), parseHeaders(resBuff), parseBody(resBuff));
 	}
@@ -74,7 +74,7 @@ namespace HTTP
 
 	}
 
-	Sockets::ConSoc findConnection(addrinfo *result, std::unique_ptr<Sockets::ConnectionPool> &pool) {
+	void findConnection(addrinfo *result, std::unique_ptr<Sockets::ConSoc>& consoc, std::unique_ptr<Sockets::ConnectionPool> &pool) {
 		SOCKET clsoc = INVALID_SOCKET;
 		struct sockaddr* srvsoc = nullptr;
 		addrinfo *ptr = NULL;
@@ -107,14 +107,14 @@ namespace HTTP
 			}
 		}
 
-		Sockets::ConSoc consoc(clsoc, srvsoc);
-
-		return consoc;
+		Sockets::ConSoc *connection = new Sockets::ConSoc(clsoc, srvsoc);
+		consoc.reset(connection);
 	}
 
 	// Unnecessary to abstract resolving dns (maybe do later idk); js abstracting connection process
-	Sockets::ConSoc Client::resolveConnection(const std::string &hostName) {
+	std::unique_ptr<Sockets::ConSoc> Client::resolveConnection(const std::string &hostName) {
 		int iResult = 0;
+		std::unique_ptr<Sockets::ConSoc> consoc;
 		struct addrinfo* result = NULL, * ptr = NULL, hints;
 		ZeroMemory(&hints, sizeof(hints));
 		hints.ai_family = AF_INET;
@@ -128,9 +128,9 @@ namespace HTTP
 			throw std::runtime_error("Address failed: " + WSAGetLastError());
 		}
 
-		Sockets::ConSoc consoc = findConnection(result, pool);
+		findConnection(result, consoc, pool);
 
-		std::cout << "Connected to " << consoc.getIP().c_str() << " at port " << HTTP_PORT << std::endl;
+		std::cout << "Connected to " << consoc->getIP().c_str() << " at port " << HTTP_PORT << std::endl;
 		
 		return consoc;
 	}
